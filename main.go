@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/emacampolo/gomparator/internal/comparator"
 	"github.com/emacampolo/gomparator/internal/platform/http"
 	"github.com/urfave/cli"
@@ -107,9 +108,11 @@ func Action(cli *cli.Context) {
 	defer cancel()
 
 	urls := comparator.NewReader(opts.filePath, opts.hosts)
+	start := time.Now()
 	responses := comparator.NewProducer(ctx, urls, opts.workers, headers,
 		ratelimit.New(opts.rateLimit), fetcher)
 	comparator.Compare(responses, opts.showDiff, opts.statusCodeOnly)
+	fmt.Println(time.Since(start))
 }
 
 func parseFlags(cli *cli.Context) *options {
