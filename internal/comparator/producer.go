@@ -28,8 +28,9 @@ func NewProducer(
 	limiter ratelimit.Limiter, fetcher Fetcher) <-chan *HostPairResponse {
 
 	ch := make(chan *HostPairResponse)
+	var wg sync.WaitGroup
 	go func() {
-		var wg sync.WaitGroup
+		defer close(ch)
 
 		for w := 0; w < concurrency; w++ {
 			wg.Add(1)
@@ -52,29 +53,29 @@ func NewProducer(
 		}
 
 		wg.Wait()
-		close(ch)
 	}()
 
 	return ch
 }
 
 func produce(u *URLPairResponse, fetcher Fetcher, headers map[string]string) *HostPairResponse {
+	work := func(u *URL, f Fetcher, h map[string]string) <-chan *Host {
+		ch := make(chan *Host, 1)
+		go func() {
+			defer close(ch)
+			ch <- fetch(u, f, h)
+		}()
+		return ch
+	}
+
 	response := &HostPairResponse{}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	leftCh := work(u.Left, fetcher, headers)
+	rightCh := work(u.Right, fetcher, headers)
 
-	go func(r *HostPairResponse) {
-		defer wg.Done()
-		r.Left = fetch(u.Left, fetcher, headers)
-	}(response)
+	response.Left = <-leftCh
+	response.Right = <-rightCh
 
-	go func(r *HostPairResponse) {
-		defer wg.Done()
-		r.Right = fetch(u.Right, fetcher, headers)
-	}(response)
-
-	wg.Wait()
 	return response
 }
 
