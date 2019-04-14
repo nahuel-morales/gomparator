@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/emacampolo/gomparator/internal/comparator"
+	"github.com/emacampolo/gomparator/internal/pipeline"
 	"github.com/emacampolo/gomparator/internal/platform/http"
+	"github.com/emacampolo/gomparator/internal/stages"
+	"github.com/emacampolo/gomparator/internal/stages/consumers"
 	"github.com/urfave/cli"
 	"go.uber.org/ratelimit"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -107,11 +110,19 @@ func Action(cli *cli.Context) {
 	}
 	defer cancel()
 
-	urls := comparator.NewReader(opts.filePath, opts.hosts)
-	start := time.Now()
-	responses := comparator.NewProducer(ctx, urls, opts.workers, headers,
+	file, err := os.Open(opts.filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cl(file)
+
+	reader := stages.NewReader(file, opts.hosts)
+	producer := stages.NewProducer(opts.workers, headers,
 		ratelimit.New(opts.rateLimit), fetcher)
-	comparator.Compare(responses, opts.showDiff, opts.statusCodeOnly)
+	comparator := consumers.NewComparator(opts.showDiff, opts.statusCodeOnly)
+	p := pipeline.New(reader, producer, ctx, comparator)
+	start := time.Now()
+	p.Run()
 	fmt.Println(time.Since(start))
 }
 
@@ -132,4 +143,11 @@ func parseFlags(cli *cli.Context) *options {
 	opts.showDiff = cli.Bool("show-diff")
 	opts.statusCodeOnly = cli.Bool("status-code-only")
 	return opts
+}
+
+func cl(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
