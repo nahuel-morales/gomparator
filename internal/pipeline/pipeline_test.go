@@ -6,6 +6,7 @@ import (
 	"github.com/emacampolo/gomparator/internal/platform/http"
 	"github.com/emacampolo/gomparator/internal/stages"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -34,6 +35,8 @@ func makeURLPair(leftHost, rightHost string) *stages.URLPair {
 
 	rightUrl := &stages.URL{}
 	rightUrl.URL, rightUrl.Error = http.JoinPath(fmt.Sprintf("http://%s.com", rightHost), "")
+
+	sleepRandom(200)
 	return &stages.URLPair{Left: leftUrl, Right: rightUrl}
 }
 
@@ -51,7 +54,7 @@ func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsRe
 		for val := range in {
 			if p.toBeProcessed > 0 && p.toBeProcessed == processed {
 				p.cancel()
-				time.Sleep(100 * time.Millisecond)
+				sleepRandom(200)
 			}
 			response := &stages.HostsResponse{}
 			response.Left = &stages.Host{
@@ -62,7 +65,7 @@ func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsRe
 			}
 			stream <- response
 			processed++
-			time.Sleep(25 * time.Millisecond)
+			sleepRandom(50)
 		}
 	}()
 
@@ -133,4 +136,9 @@ func TestRunWithCancel(t *testing.T) {
 
 	p.Run()
 	assert.Equal(t, 3, consumer.times)
+}
+
+func sleepRandom(max int) {
+	r := rand.Intn(max)
+	time.Sleep(time.Duration(r) * time.Millisecond)
 }

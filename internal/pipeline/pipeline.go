@@ -54,9 +54,10 @@ func (p *Pipeline) totalConsumers() int {
 }
 
 func (p *Pipeline) fanOut() []chan *stages.HostsResponse {
+	// Create channels for each consumer that will all receive the same values mimicking unix tee
 	teeStreams := make([]chan *stages.HostsResponse, p.totalConsumers())
 	for i := range teeStreams {
-		teeStreams[i] = make(chan *stages.HostsResponse)
+		teeStreams[i] = make(chan *stages.HostsResponse, 1)
 	}
 
 	readStream := p.reader.Read()
