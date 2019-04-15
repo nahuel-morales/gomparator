@@ -11,11 +11,11 @@ type Reader interface {
 }
 
 type Producer interface {
-	Produce(in <-chan *stages.URLPair) <-chan *stages.HostsResponse
+	Produce(in <-chan *stages.URLPair) <-chan *stages.HostsPair
 }
 
 type Consumer interface {
-	Consume(in <-chan *stages.HostsResponse)
+	Consume(in <-chan *stages.HostsPair)
 }
 
 func New(reader Reader, producer Producer, ctx context.Context, consumers ...Consumer) *Pipeline {
@@ -53,24 +53,24 @@ func (p *Pipeline) totalConsumers() int {
 	return len(p.consumers)
 }
 
-func (p *Pipeline) tee() []chan *stages.HostsResponse {
+func (p *Pipeline) tee() []chan *stages.HostsPair {
 	// Create channels for each consumer that will all receive the same values mimicking unix tee
-	teeStreams := make([]chan *stages.HostsResponse, p.totalConsumers())
+	teeStreams := make([]chan *stages.HostsPair, p.totalConsumers())
 	for i := range teeStreams {
-		teeStreams[i] = make(chan *stages.HostsResponse, 1)
+		teeStreams[i] = make(chan *stages.HostsPair, 1)
 	}
 
 	readStream := p.reader.Read()
 	producerStream := p.producer.Produce(readStream)
 
-	closeStreams := func(streams []chan *stages.HostsResponse) {
+	closeStreams := func(streams []chan *stages.HostsPair) {
 		for _, s := range streams {
 			close(s)
 		}
 	}
 
-	orDone := func(ctx context.Context, c <-chan *stages.HostsResponse) <-chan *stages.HostsResponse {
-		valStream := make(chan *stages.HostsResponse)
+	orDone := func(ctx context.Context, c <-chan *stages.HostsPair) <-chan *stages.HostsPair {
+		valStream := make(chan *stages.HostsPair)
 		go func() {
 			defer close(valStream)
 			for {

@@ -45,8 +45,8 @@ type producerStub struct {
 	toBeProcessed int
 }
 
-func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsResponse {
-	stream := make(chan *stages.HostsResponse)
+func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsPair {
+	stream := make(chan *stages.HostsPair)
 	go func() {
 		defer close(stream)
 
@@ -56,7 +56,7 @@ func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsRe
 				p.cancel()
 				sleepRandom(200)
 			}
-			response := &stages.HostsResponse{}
+			response := &stages.HostsPair{}
 			response.Left = &stages.Host{
 				URL: val.Left.URL,
 			}
@@ -73,11 +73,11 @@ func (p *producerStub) Produce(in <-chan *stages.URLPair) <-chan *stages.HostsRe
 }
 
 type consumerSpy struct {
-	responses []*stages.HostsResponse
+	responses []*stages.HostsPair
 	times     int
 }
 
-func (c *consumerSpy) Consume(in <-chan *stages.HostsResponse) {
+func (c *consumerSpy) Consume(in <-chan *stages.HostsPair) {
 	for val := range in {
 		c.responses = append(c.responses, val)
 		c.times++

@@ -11,11 +11,11 @@ type Fetcher interface {
 	Fetch(url string, headers map[string]string) (*http.Response, error)
 }
 
-type HostsResponse struct {
+type HostsPair struct {
 	Left, Right *Host
 }
 
-func (h *HostsResponse) EqualStatusCode() bool {
+func (h *HostsPair) EqualStatusCode() bool {
 	return h.Left.StatusCode == h.Right.StatusCode
 }
 
@@ -33,8 +33,8 @@ type Producer struct {
 	fetcher     Fetcher
 }
 
-func (p *Producer) Produce(in <-chan *URLPair) <-chan *HostsResponse {
-	stream := make(chan *HostsResponse)
+func (p *Producer) Produce(in <-chan *URLPair) <-chan *HostsPair {
+	stream := make(chan *HostsPair)
 	go func() {
 		defer close(stream)
 
@@ -65,7 +65,7 @@ func NewProducer(concurrency int, headers map[string]string, limiter ratelimit.L
 	}
 }
 
-func (p *Producer) produce(u *URLPair) *HostsResponse {
+func (p *Producer) produce(u *URLPair) *HostsPair {
 	work := func(u *URL) <-chan *Host {
 		ch := make(chan *Host, 1)
 		go func() {
@@ -75,7 +75,7 @@ func (p *Producer) produce(u *URLPair) *HostsResponse {
 		return ch
 	}
 
-	response := &HostsResponse{}
+	response := &HostsPair{}
 
 	leftCh := work(u.Left)
 	rightCh := work(u.Right)

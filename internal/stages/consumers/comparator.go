@@ -22,7 +22,7 @@ func NewComparator(showDiff bool, statusCodeOnly bool) *Comparator {
 	}
 }
 
-func (c *Comparator) Consume(stream <-chan *stages.HostsResponse) {
+func (c *Comparator) Consume(stream <-chan *stages.HostsPair) {
 	for val := range stream {
 		if val.Left.Error != nil {
 			logger.Printf("error %v", val.Left.Error)
