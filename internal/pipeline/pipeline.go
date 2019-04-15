@@ -38,7 +38,7 @@ func (p *Pipeline) Run() {
 	var wg sync.WaitGroup
 	wg.Add(p.totalConsumers())
 
-	streams := p.fanOut()
+	streams := p.tee()
 	for i := range streams {
 		go func(i int) {
 			defer wg.Done()
@@ -53,7 +53,7 @@ func (p *Pipeline) totalConsumers() int {
 	return len(p.consumers)
 }
 
-func (p *Pipeline) fanOut() []chan *stages.HostsResponse {
+func (p *Pipeline) tee() []chan *stages.HostsResponse {
 	// Create channels for each consumer that will all receive the same values mimicking unix tee
 	teeStreams := make([]chan *stages.HostsResponse, p.totalConsumers())
 	for i := range teeStreams {
