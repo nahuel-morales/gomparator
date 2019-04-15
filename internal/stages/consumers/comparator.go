@@ -34,9 +34,9 @@ func (c *Comparator) Consume(stream <-chan *stages.HostsResponse) {
 			continue
 		}
 
-		if val.Left.StatusCode == val.Right.StatusCode && c.statusCodeOnly {
+		if val.EqualStatusCode() && c.statusCodeOnly {
 			logger.Printf("ok status code %d", val.Left.StatusCode)
-		} else if val.Left.StatusCode == val.Right.StatusCode {
+		} else if val.EqualStatusCode() {
 			if j1, j2 := unmarshal(val.Left), unmarshal(val.Right); j1 == nil || j2 == nil {
 				continue
 			} else if json.Equal(j1, j2) {
